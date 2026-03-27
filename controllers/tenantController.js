@@ -2,7 +2,7 @@ const Tenant = require('../models/Tenant');
 
 exports.registerTenant = async (req, res) => {
     try {
-        const { name, slug, type, contactEmail, contactPhone } = req.body;
+        const { name, slug, type, contactEmail, contactPhone, logoUrl, primaryColor } = req.body;
 
         const existingTenant = await Tenant.findOne({ slug });
         if (existingTenant) {
@@ -15,6 +15,10 @@ exports.registerTenant = async (req, res) => {
             type,
             contactEmail,
             contactPhone,
+            branding: {
+                logoUrl: logoUrl || null,
+                primaryColor: primaryColor || '#10b981'
+            },
             status: 'pending'
         });
 

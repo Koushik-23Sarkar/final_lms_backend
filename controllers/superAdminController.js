@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const SuperAdmin = require('../models/SuperAdmin');
 const Tenant = require('../models/Tenant');
+const User = require('../models/User');
+const crypto = require('crypto');
 
 exports.login = async (req, res) => {
     const { email, password } = req.body;
@@ -40,13 +42,37 @@ exports.approveTenant = async (req, res) => {
             { status: 'active' },
             { new: true }
         );
-
         if (!tenant) return res.status(404).json({ success: false, error: 'Tenant not found' });
-
-        // NOTE: Later, this is sending an automated email to the school owner saying "Your LMS is ready!"
-
-        res.status(200).json({ success: true, message: 'Institution activated successfully.', data: tenant });
+        const existingAdmin = await User.findOne({
+            tenantId: tenant._id,
+            role: 'SCHOOL_ADMIN'
+        });
+        let temporaryPassword = null;
+        if (!existingAdmin) {
+            temporaryPassword = crypto.randomBytes(4).toString('hex');
+            await User.create({
+                tenantId: tenant._id,
+                role: 'SCHOOL_ADMIN',
+                email: tenant.contactEmail,
+                password: temporaryPassword,
+                firstName: 'School',
+                lastName: 'Admin'
+            });
+            console.log('\n--- EMAIL SIMULATION ---');
+            console.log(`To: ${tenant.contactEmail}`);
+            console.log(`Subject: Your LMS Portal is Ready!`);
+            console.log(`URL: http://${tenant.slug}.yourlms.com`);
+            console.log(`Email: ${tenant.contactEmail}`);
+            console.log(`Temporary Password: ${temporaryPassword}`);
+            console.log('------------------------\n');
+        }
+        res.status(200).json({
+            success: true,
+            message: 'Institution activated and Admin created.',
+            data: tenant
+        });
     } catch (error) {
+        console.error("Approval Error:", error);
         res.status(500).json({ success: false, error: 'Failed to approve tenant' });
     }
 };

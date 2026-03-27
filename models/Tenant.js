@@ -5,7 +5,15 @@ const tenantSchema = new mongoose.Schema({
     slug: { type: String, required: true, unique: true },
     domain: { type: String, default: null },
     type: { type: String, enum: ['school', 'college', 'coaching'], required: true },
-    status: { type: String, enum: ['pending', 'active', 'suspended'], default: 'pending' },
+    status: {
+        type: String,
+        enum: ['pending', 'active', 'suspended'],
+        default: 'pending'
+    },
+    branding: {
+        logoUrl: { type: String, default: null },
+        primaryColor: { type: String, default: '#10b981' },
+    },
     plan: { type: String, enum: ['free', 'pro', 'enterprise'], default: 'free' },
     contactEmail: { type: String, required: true },
     contactPhone: { type: String },
