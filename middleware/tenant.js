@@ -24,7 +24,7 @@ const tenantMiddleware = async (req, res, next) => {
                 const token = authHeader.split(' ')[1];
                 req.user = jwt.verify(token, process.env.JWT_SECRET);
             } catch (e) {
-                // If it fails verification, we still proceed but leave req.user undefined.
+
             }
         }
 
