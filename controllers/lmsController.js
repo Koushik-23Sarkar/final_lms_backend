@@ -1,6 +1,9 @@
 const User = require('../models/User');
 const Tenant = require('../models/Tenant');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const csv = require('csv-parser');
+const fs = require('fs');
 
 exports.getTenantInfo = async (req, res) => {
     try {
@@ -58,19 +61,82 @@ exports.createStudent = async (req, res) => {
             return res.status(400).json({ error: 'User with this email already exists in this institution' });
         }
 
+        const tempPassword = password || crypto.randomBytes(4).toString('hex');
+
         const student = await User.create({
             tenantId: req.tenantId,
             role: 'STUDENT',
             firstName,
             lastName,
             email,
-            password
+            password: tempPassword,
+            classGroup: req.body.classGroup || null,
+            rollNumber: req.body.rollNumber || null
         });
 
-        res.status(201).json({ success: true, data: { _id: student._id, firstName, lastName, email } });
+        res.status(201).json({ success: true, data: { _id: student._id, firstName, lastName, email }, tempPassword });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
+};
+
+exports.bulkCreateStudents = (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, error: 'Please upload a CSV file.' });
+    }
+
+    const results = [];
+    const errors = [];
+
+    const stream = require('stream');
+    const bufferStream = new stream.PassThrough();
+    bufferStream.end(req.file.buffer);
+
+    bufferStream
+        .pipe(csv())
+        .on('data', (data) => {
+            const cleanData = {};
+            for (const key in data) {
+                cleanData[key.trim()] = data[key].trim();
+            }
+            results.push(cleanData);
+        })
+        .on('end', async () => {
+            try {
+                const usersToInsert = results.map((row) => {
+                    const tempPassword = crypto.randomBytes(4).toString('hex');
+                    return {
+                        tenantId: req.tenantId,
+                        role: 'STUDENT',
+                        firstName: row.FirstName || row.firstname || 'Unknown',
+                        lastName: row.LastName || row.lastname || '',
+                        email: row.Email || row.email,
+                        password: tempPassword,
+                        classGroup: row.Class || row.classGroup || null,
+                        rollNumber: row.RollNumber || row.rollNumber || null
+                    };
+                });
+
+                const validUsers = usersToInsert.filter(u => !!u.email);
+
+                const inserted = await User.insertMany(validUsers, { ordered: false });
+
+                res.status(201).json({
+                    success: true,
+                    message: `${inserted.length} students imported successfully.`,
+                    count: inserted.length
+                });
+            } catch (error) {
+                if (error.code === 11000) {
+                    const currentCount = error.insertedDocs ? error.insertedDocs.length : 0;
+                    return res.status(201).json({
+                        success: true,
+                        message: `Import completed with some duplicate email skipping. ${currentCount} new students added.`
+                    });
+                }
+                res.status(500).json({ success: false, error: 'Failed to process CSV data.' });
+            }
+        });
 };
 
 exports.getStudents = async (req, res) => {
@@ -102,5 +168,60 @@ exports.deleteStudent = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
+exports.getTeachers = async (req, res) => {
+    try {
+        const teachers = await User.find({
+            tenantId: req.tenantId,
+            role: 'TEACHER'
+        }).select('-password');
+
+        res.status(200).json({ success: true, data: teachers });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.createTeacher = async (req, res) => {
+    try {
+        const { firstName, lastName, email, password } = req.body;
+
+        const existingUser = await User.findOne({ email, tenantId: req.tenantId });
+        if (existingUser) {
+            return res.status(400).json({ error: 'User with this email already exists in this institution' });
+        }
+
+        const tempPassword = password || crypto.randomBytes(4).toString('hex');
+
+        const teacher = await User.create({
+            tenantId: req.tenantId,
+            role: 'TEACHER',
+            firstName,
+            lastName,
+            email,
+            password: tempPassword,
+        });
+
+        res.status(201).json({ success: true, data: { _id: teacher._id, firstName, lastName, email }, tempPassword });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+
+exports.deleteTeacher = async (req, res) => {
+    try {
+        const teacher = await User.findOneAndDelete({
+            _id: req.params.id,
+            tenantId: req.tenantId,
+            role: 'TEACHER'
+        });
+
+        if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
+        res.status(200).json({ success: true, message: 'Teacher deleted successfully.' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 };

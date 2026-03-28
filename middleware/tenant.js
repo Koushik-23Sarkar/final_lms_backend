@@ -1,4 +1,5 @@
 const Tenant = require('../models/Tenant');
+const jwt = require('jsonwebtoken');
 
 const tenantMiddleware = async (req, res, next) => {
     try {
@@ -15,6 +16,16 @@ const tenantMiddleware = async (req, res, next) => {
 
         if (tenant.status !== 'active') {
             return res.status(403).json({ error: 'This institution account is currently inactive or pending approval.' });
+        }
+
+        const authHeader = req.headers['authorization'];
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const token = authHeader.split(' ')[1];
+                req.user = jwt.verify(token, process.env.JWT_SECRET);
+            } catch (e) {
+                // If it fails verification, we still proceed but leave req.user undefined.
+            }
         }
 
         req.tenantId = tenant._id;

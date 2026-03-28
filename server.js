@@ -7,6 +7,7 @@ const connectDB = require('./config/db');
 const tenantRoutes = require('./routes/tenantRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
 const lmsRoutes = require('./routes/lmsRoutes');
+const academicRoutes = require('./routes/academicRoutes');
 
 connectDB();
 
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/admin', superAdminRoutes);
 app.use('/api/lms', lmsRoutes);
+app.use('/api/academic', academicRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

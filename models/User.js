@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
+    classGroup: { type: String },
+    rollNumber: { type: String },
 }, { timestamps: true });
 
 userSchema.index({ email: 1, tenantId: 1 }, { unique: true });
