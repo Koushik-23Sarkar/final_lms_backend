@@ -3,7 +3,6 @@ const router = express.Router();
 const academicController = require('../controllers/academicController');
 const tenantMiddleware = require('../middleware/tenant');
 
-// programs batches subjects
 router.post('/programs', tenantMiddleware, academicController.createProgram);
 router.post('/batches', tenantMiddleware, academicController.createBatch);
 router.post('/subjects', tenantMiddleware, academicController.createSubject);
