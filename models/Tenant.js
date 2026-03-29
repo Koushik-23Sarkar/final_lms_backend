@@ -12,7 +12,7 @@ const tenantSchema = new mongoose.Schema({
     },
     branding: {
         logoUrl: { type: String, default: null },
-        primaryColor: { type: String, default: '#10b981' },
+        primaryColor: { type: String, default: '#10b981' }, // color for the tenant
     },
     plan: { type: String, enum: ['free', 'pro', 'enterprise'], default: 'free' },
     contactEmail: { type: String, required: true },
