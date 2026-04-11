@@ -23,12 +23,14 @@ const tenantMiddleware = async (req, res, next) => {
             try {
                 const token = authHeader.split(' ')[1];
                 req.user = jwt.verify(token, process.env.JWT_SECRET);
+                console.log("Authenticated User:", req.user);
             } catch (e) {
-
+                console.error("Token Verification Error:", e);
             }
         }
 
         req.tenantId = tenant._id;
+        console.log("Tenant:",req.tenantId);
         next();
     } catch (error) {
         console.error('Tenant Resolution Error:', error);
